@@ -1,0 +1,17 @@
+/target/
+/.settings/
+/overrideProperties/
+tmp/*log*
+tmp/*docker*
+tmp/pid
+nohup.out
+.idea/
+.classpath
+.project
+database/
+.commit
+*.iml
+docs/_build
+src/main/resources/scripts/node_modules/
+/.gradle/
+.keystore
