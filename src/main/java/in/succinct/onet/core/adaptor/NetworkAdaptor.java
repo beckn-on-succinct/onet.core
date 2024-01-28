@@ -433,18 +433,9 @@ public abstract class NetworkAdaptor extends BecknObjectWithId {
         }
     }
 
-    private transient ObjectHolder<NetworkApiAdaptor> networkApiAdaptorHolder = null;
     public NetworkApiAdaptor getApiAdaptor() {
-        if (networkApiAdaptorHolder != null) {
-            return networkApiAdaptorHolder.get();
-        }
-        synchronized (this) {
-            if (networkApiAdaptorHolder == null) {
-                networkApiAdaptorHolder = new ObjectHolder<>(null);
-                Registry.instance().callExtensions(NetworkApiAdaptor.class.getName(), this, networkApiAdaptorHolder);
-            }
-        }
-
+        ObjectHolder<NetworkApiAdaptor> networkApiAdaptorHolder = new ObjectHolder<>(null);
+        Registry.instance().callExtensions(NetworkApiAdaptor.class.getName(), this, networkApiAdaptorHolder);
         return networkApiAdaptorHolder.get();
     }
 
