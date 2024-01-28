@@ -5,7 +5,9 @@ import com.venky.cache.Cache;
 import com.venky.core.collections.SequenceSet;
 import com.venky.core.date.DateUtils;
 import com.venky.core.security.Crypt;
+import com.venky.core.util.ObjectHolder;
 import com.venky.core.util.ObjectUtil;
+import com.venky.extension.Registry;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.db.model.CryptoKey;
 import com.venky.swf.integration.api.Call;
@@ -431,7 +433,20 @@ public abstract class NetworkAdaptor extends BecknObjectWithId {
         }
     }
 
-    public abstract NetworkApiAdaptor getApiAdaptor();
+    private transient ObjectHolder<NetworkApiAdaptor> networkApiAdaptorHolder = null;
+    public NetworkApiAdaptor getApiAdaptor() {
+        if (networkApiAdaptorHolder != null) {
+            return networkApiAdaptorHolder.get();
+        }
+        synchronized (this) {
+            if (networkApiAdaptorHolder == null) {
+                networkApiAdaptorHolder = new ObjectHolder<>(null);
+                Registry.instance().callExtensions(NetworkApiAdaptor.class.getName(), this, networkApiAdaptorHolder);
+            }
+        }
+
+        return networkApiAdaptorHolder.get();
+    }
 
     public String getExtensionPackage(){
         return get("extension_package");
