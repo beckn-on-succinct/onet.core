@@ -84,6 +84,21 @@ public abstract class NetworkAdaptor extends BecknObjectWithId {
         set("domains",domains);
     }
 
+
+    public String getWildCard(){
+        return get("wild_card","");
+    }
+    public void setWildCard(String wild_card){
+        set("wild_card",wild_card);
+    }
+
+    public String getCountry(){
+        return get("country", "IND");
+    }
+    public void setCountry(String country){
+        set("country",country);
+    }
+
     private Subscriber registry = null;
     public Subscriber getRegistry(){
         if (registry != null){
@@ -114,15 +129,26 @@ public abstract class NetworkAdaptor extends BecknObjectWithId {
         set("search_provider_id",search_provider_id);
     }
 
+    Subscriber searchProvider = null;
     public Subscriber getSearchProvider(){
-        if (ObjectUtil.isVoid(getSearchProviderId())){
-            return null;
+        if (searchProvider != null){
+            return searchProvider;
         }
-        List<Subscriber> subscribers = lookup(getSearchProviderId(),true);
-        if (!subscribers.isEmpty()){
-            return subscribers.get(0);
+        synchronized (this){
+            if (searchProvider != null) {
+                return searchProvider;
+            }
+            Subscriber search = new Subscriber();
+            search.setType(Subscriber.SUBSCRIBER_TYPE_BG);
+            if (!ObjectUtil.isVoid(getSearchProviderId())){
+                search.setSubscriberId(getSearchProviderId());
+            }
+            List<Subscriber> subscribers = lookup(search,true);
+            if (!subscribers.isEmpty()){
+                searchProvider =  subscribers.get(0);
+            }
         }
-        return null;
+        return searchProvider;
     }
 
     public String getRegistryId() {
@@ -169,19 +195,20 @@ public abstract class NetworkAdaptor extends BecknObjectWithId {
     }
     public void rotateKeys(Subscriber subscriber) {
         CryptoKey existingKey = getKey(subscriber.getAlias(),CryptoKey.PURPOSE_SIGNING);
+        boolean newKey = existingKey.getRawRecord().isNewRecord();
+        boolean expiredKey = existingKey.getUpdatedAt().getTime() + getKeyValidityMillis() <= System.currentTimeMillis();
 
-        if (existingKey.getRawRecord().isNewRecord() || existingKey.getUpdatedAt().getTime() + getKeyValidityMillis() <= System.currentTimeMillis() ){
+        if (newKey || expiredKey ){
             KeyPair signPair = Crypt.getInstance().generateKeyPair(Request.SIGNATURE_ALGO, Request.SIGNATURE_ALGO_KEY_LENGTH);
             KeyPair encPair = Crypt.getInstance().generateKeyPair(Request.ENCRYPTION_ALGO, Request.ENCRYPTION_ALGO_KEY_LENGTH);
-            /*
-            String keyNumber = existingKey.getAlias().substring(existingKey.getAlias().lastIndexOf('.')+2);// .k[0-9]*
-            int nextKeyNumber = Integer.parseInt(keyNumber) + 1;
-            String nextKeyId = String.format("%s.k%d",
-                    existingKey.getAlias().substring(0,existingKey.getAlias().lastIndexOf('.')),
-                    nextKeyNumber);
-            */
-            String nextKeyId = existingKey.getAlias();
-            subscriber.setAlias(nextKeyId);
+            if (expiredKey) {
+                String keyNumber = existingKey.getAlias().substring(existingKey.getAlias().lastIndexOf('.') + 2);// .k[0-9]*
+                int nextKeyNumber = Integer.parseInt(keyNumber) + 1;
+                String nextKeyId = String.format("%s.k%d",
+                        existingKey.getAlias().substring(0, existingKey.getAlias().lastIndexOf('.')),
+                        nextKeyNumber);
+                subscriber.setAlias(nextKeyId);
+            }
             subscriber.setUniqueKeyId(subscriber.getAlias());
 
             CryptoKey signKey = getKey(subscriber.getAlias(),CryptoKey.PURPOSE_SIGNING) ;//Create new key
@@ -208,30 +235,32 @@ public abstract class NetworkAdaptor extends BecknObjectWithId {
         long validFrom = skey.getUpdatedAt().getTime();
         long validTo = (validFrom + getKeyValidityMillis());
 
-        JSONObject object = new JSONObject();
-        object.put("subscriber_id", subscriber.getSubscriberId());
-        object.put("subscriber_url", subscriber.getSubscriberUrl());
-        object.put("type",subscriber.getType());
+        Subscriber tmp  = new Subscriber(){{
+           setSubscriberId(subscriber.getSubscriberId());
+           setSubscriberUrl(subscriber.getSubscriberUrl());
+           setType(subscriber.getType());
+           setDomain(subscriber.getDomain());
+           setDomains(subscriber.getDomains());
+           setSigningPublicKey(Request.getRawSigningKey(skey.getPublicKey()));
+           setEncrPublicKey(Request.getRawEncryptionKey(ekey.getPublicKey()));
+           setValidFrom(new Date(validFrom));
+           setValidTo(new Date(validTo));
+           setCountry(subscriber.getCountry());
+           if (!ObjectUtil.isVoid(subscriber.getCity())){
+               setCity(subscriber.getCity());
+           }else if (!ObjectUtil.isVoid(getWildCard())){
+               setCity(getWildCard());
+           }
+           setCreated(skey.getCreatedAt());
+           setUpdated(skey.getUpdatedAt());
+           setUniqueKeyId(skey.getAlias());
+           setPubKeyId(skey.getAlias());
+           setNonce(Base64.getEncoder().encodeToString(String.valueOf(System.currentTimeMillis()).getBytes(StandardCharsets.UTF_8)));
+        }};
 
-        object.put("domain", subscriber.getDomain());
-        object.put("signing_public_key", Request.getRawSigningKey(skey.getPublicKey()));
-        object.put("encr_public_key", Request.getRawEncryptionKey(ekey.getPublicKey()));
-        object.put("valid_from", BecknObject.TIMESTAMP_FORMAT.format(new Date(validFrom)));
-        object.put("valid_until", BecknObject.TIMESTAMP_FORMAT.format(new Date(validTo)));
-        object.put("country", subscriber.getCountry());
-        if (!ObjectUtil.isVoid(subscriber.getCity())){
-            object.put("city", subscriber.getCity());
-        }
-        object.put("created",BecknObject.TIMESTAMP_FORMAT.format(skey.getCreatedAt()));
-        object.put("updated",BecknObject.TIMESTAMP_FORMAT.format(skey.getUpdatedAt()));
 
-
-        object.put("unique_key_id", skey.getAlias());
-        object.put("pub_key_id", skey.getAlias());
-        object.put("nonce", Base64.getEncoder().encodeToString(String.valueOf(System.currentTimeMillis()).getBytes(StandardCharsets.UTF_8)));
-        subscriber.setInner(object);
-
-        return object;
+        subscriber.setInner(tmp.getInner());
+        return subscriber.getInner();
     }
 
     public void register(Subscriber subscriber) {
@@ -246,7 +275,13 @@ public abstract class NetworkAdaptor extends BecknObjectWithId {
         Config.instance().getLogger(getClass().getName()).info("register" + "-" + response.toString());
     }
 
+    private void clearLookup(String subscriberId){
+        Subscriber subscriber = new Subscriber();
+        subscriber.setSubscriberId(subscriberId);
+        subscriberLookup.put(getKey(subscriber),null);
+    }
     public void subscribe(Subscriber subscriber) {
+        clearLookup(subscriber.getSubscriberId());
         List<Subscriber> subscribers = lookup(subscriber.getSubscriberId(),false);
 
         if (subscriber.getDomains() == null){
@@ -278,6 +313,8 @@ public abstract class NetworkAdaptor extends BecknObjectWithId {
             if (me.getValidFrom().getTime() < now && me.getValidTo().getTime() > now){
                 return;
             }
+            _subscribe(subscriber);
+        }else if (ObjectUtil.equals(Subscriber.SUBSCRIBER_STATUS_INITIATED,subscribers.get(0).getStatus())){
             _subscribe(subscriber);
         }
     }

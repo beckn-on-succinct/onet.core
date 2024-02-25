@@ -1,6 +1,7 @@
 package in.succinct.onet.core.api;
 
 import com.venky.core.util.ObjectUtil;
+import com.venky.swf.routing.Config;
 import in.succinct.beckn.Subscriber;
 
 
@@ -9,7 +10,7 @@ import java.util.regex.Pattern;
 
 public class BecknIdHelper {
     public static String getIdPrefix(){
-        return "./local_retail/ind/";
+        return Config.instance().getProperty("onet.core.id.prefix", "./");
     }
 
     public enum Entity {

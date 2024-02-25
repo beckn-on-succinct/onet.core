@@ -16,7 +16,12 @@ public class TimeSensitiveCache implements Serializable {
         Entry entry = new Entry();
         entry.expiry = System.currentTimeMillis() + ttl.toMillis();
         entry.value = value;
-        Entry oldValue = cache.put(key,entry);
+        Entry oldValue = null;
+        if (value == null){
+            oldValue = cache.remove(key);
+        }else {
+            oldValue = cache.put(key, entry);
+        }
         return oldValue == null ? null : (T)oldValue.value;
     }
 
