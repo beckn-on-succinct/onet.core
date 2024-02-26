@@ -357,7 +357,8 @@ public abstract class NetworkAdaptor extends BecknObjectWithId {
             }
 
             if (ObjectUtil.isVoid(tmp.getCountry())){
-                tmp.setCountry("IND");
+                tmp.setCountry(Config.instance().getProperty("in.succinct.onet.country.iso.3",
+                        Config.instance().getProperty("in.succinct.bpp.shell.country.iso.3","IND")));
             }
 
             JSONArray responses = new Call<JSONObject>().method(HttpMethod.POST).url(getRegistryUrl(), "lookup").input(tmp.getInner(false)).inputFormat(InputFormat.JSON)
