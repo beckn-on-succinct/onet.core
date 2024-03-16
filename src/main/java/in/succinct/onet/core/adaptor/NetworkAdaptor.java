@@ -106,7 +106,10 @@ public abstract class NetworkAdaptor extends BecknObjectWithId {
         }
         synchronized (this){
             if (registry == null) {
-                List<Subscriber> subscribers = lookup(getRegistryId(), true);
+                List<Subscriber> subscribers = lookup(new Subscriber(){{
+                    setSubscriberId(getRegistryId());
+                    setType(Subscriber.SUBSCRIBER_TYPE_LOCAL_REGISTRY);
+                }}, true);
                 if (!subscribers.isEmpty()) {
                     registry = subscribers.get(0);
                 }
@@ -179,11 +182,13 @@ public abstract class NetworkAdaptor extends BecknObjectWithId {
     public void setKeyExpiryGracePeriod(int key_expiry_grace_period){
         set("key_expiry_grace_period",key_expiry_grace_period);
     }
+    /*
     public List<Subscriber> lookup(String subscriberId, boolean onlyIfSubscribed) {
         Subscriber subscriber = new Subscriber();
         subscriber.setSubscriberId(subscriberId);
         return lookup(subscriber,onlyIfSubscribed);
     }
+    */
 
 
     public long getKeyValidityMillis(){
@@ -255,6 +260,7 @@ public abstract class NetworkAdaptor extends BecknObjectWithId {
            setUpdated(skey.getUpdatedAt());
            setUniqueKeyId(skey.getAlias());
            setPubKeyId(skey.getAlias());
+           setOrganization(subscriber.getOrganization());
            setNonce(Base64.getEncoder().encodeToString(String.valueOf(System.currentTimeMillis()).getBytes(StandardCharsets.UTF_8)));
         }};
 
@@ -282,14 +288,19 @@ public abstract class NetworkAdaptor extends BecknObjectWithId {
     }
     public void subscribe(Subscriber subscriber) {
         clearLookup(subscriber.getSubscriberId());
-        List<Subscriber> subscribers = lookup(subscriber.getSubscriberId(),false);
+        List<Subscriber> subscribers = lookup(new Subscriber(){{
+            setSubscriberId(subscriber.getSubscriberId());
+            setType(subscriber.getType());
+        }},false);
 
         if (subscriber.getDomains() == null){
             subscriber.setDomains(new Subscriber.Domains());
-            subscriber.getDomains().add(subscriber.getDomain());
+            if (subscriber.getDomain() != null) {
+                subscriber.getDomains().add(subscriber.getDomain());
+            }
         }
 
-        if (subscribers.size() < subscriber.getDomains().size()){
+        if (subscribers.isEmpty() || subscribers.size() < subscriber.getDomains().size()){
             if (isSelfRegistrationSupported()) {
                 Subscriber.Domains domains = new Subscriber.Domains(subscriber.getDomains().getInner());
                 try {
@@ -331,7 +342,7 @@ public abstract class NetworkAdaptor extends BecknObjectWithId {
                 Objects.requireNonNull(getKey(subscriber.getAlias(),CryptoKey.PURPOSE_SIGNING)).getAlias()));
 
         JSONObject response = call.getResponseAsJson();
-        Config.instance().getLogger(getClass().getName()).info("subscribe" + "-" + response.toString());
+        Config.instance().getLogger(getClass().getName()).info("subscribe" + "-" + ( response != null ? response.toString() : call.getError()));
     }
 
     private transient TimeSensitiveCache subscriberLookup = new TimeSensitiveCache(Duration.ofHours(1));
