@@ -47,6 +47,12 @@ public abstract class NetworkAdaptor extends BecknObjectWithId {
     protected NetworkAdaptor(){
 
     }
+    private static URL getNetworkConfig(String networkName){
+        return Config.class.getResource(String.format("/config/networks/%s.json", networkName));
+    }
+    public static boolean isEnabled(String networkName){
+        return getNetworkConfig(networkName) != null;
+    }
     protected NetworkAdaptor(String networkName){
         setId(networkName);
         getInner().putAll(getConfig());
@@ -54,7 +60,7 @@ public abstract class NetworkAdaptor extends BecknObjectWithId {
     public  JSONObject getConfig(){
         try {
             return  (JSONObject) JSONValue.parseWithException(new InputStreamReader(
-                Objects.requireNonNull(Config.class.getResourceAsStream(String.format("/config/networks/%s.json", getId())))));
+                Objects.requireNonNull(getNetworkConfig(getId()).openStream())));
         }catch (Exception ex){
             throw new RuntimeException(ex);
         }
