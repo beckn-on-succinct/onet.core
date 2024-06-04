@@ -281,13 +281,14 @@ public abstract class NetworkAdaptor extends BecknObjectWithId {
         Config.instance().getLogger(getClass().getName()).info("register" + "-" + response.toString());
     }
 
-    private void clearLookup(String subscriberId){
-        Subscriber subscriber = new Subscriber();
-        subscriber.setSubscriberId(subscriberId);
+    private void clearLookup(Subscriber subscriber){
         subscriberLookup.put(getKey(subscriber),null);
     }
     public void subscribe(Subscriber subscriber) {
-        clearLookup(subscriber.getSubscriberId());
+        clearLookup(new Subscriber(){{
+            setSubscriberId(subscriber.getSubscriberId());
+            setType(subscriber.getType());
+        }});
         List<Subscriber> subscribers = lookup(new Subscriber(){{
             setSubscriberId(subscriber.getSubscriberId());
             setType(subscriber.getType());
