@@ -507,14 +507,16 @@ public abstract class NetworkAdaptor extends BecknObjectWithId {
     @SuppressWarnings("unchecked")
     private <B> B create(Class<B> clazz , String domainId){
         if (!BecknObject.class.isAssignableFrom(clazz)){
-            create(clazz);
+            return create(clazz);
         }
         if (classesWithNoExtension.contains(clazz)){
-            create(clazz);
+            return create(clazz);
         }
 
         Set<String> packagesToCheck = new SequenceSet<>();
-        packagesToCheck.add(getDomains().get(domainId).getExtensionPackage());
+        if (!ObjectUtil.isVoid(domainId)) {
+            packagesToCheck.add(getDomains().get(domainId).getExtensionPackage());
+        }
         packagesToCheck.add(getExtensionPackage());
 
         Class<?> extendedClass = clazz;
