@@ -1,8 +1,11 @@
 package in.succinct.onet.core.adaptor;
 
+import com.venky.swf.routing.Config;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
 
 public class NetworkAdaptorFactory {
     private static volatile NetworkAdaptorFactory sSoleInstance;
@@ -30,14 +33,26 @@ public class NetworkAdaptorFactory {
         return getInstance();
     }
 
-    private final Map<String,NetworkAdaptor> cache = Collections.synchronizedMap(new HashMap<>());
+    private final Map<String,NetworkAdaptor> cache = new HashMap<>();
     public void registerAdaptor(NetworkAdaptor adaptor){
-        cache.put(adaptor.getId(),adaptor);
+        synchronized (cache) {
+            NetworkAdaptor existing = cache.get(adaptor.getId());
+            if (existing == null ) {
+                cache.put(adaptor.getId(), adaptor);
+            }else if (existing != adaptor) {
+                Config.instance().getLogger(getClass().getName()).log(Level.WARNING,"Another adaptor already registered for "+ adaptor.getId());
+            }
+        }
     }
 
 
     public NetworkAdaptor getAdaptor(String networkName){
-        NetworkAdaptor adaptor =  cache.get(networkName);
+        NetworkAdaptor adaptor =  cache.get(networkName) ;
+        if (adaptor == null) {
+            synchronized (cache) {
+                adaptor = cache.get(networkName);
+            }
+        }
         if (adaptor == null){
             throw new RuntimeException("No adaptor is registered for onet: " +networkName);
         }
