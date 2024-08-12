@@ -44,9 +44,6 @@ import java.util.TreeMap;
 import java.util.logging.Level;
 
 public abstract class NetworkAdaptor extends BecknObjectWithId {
-    protected NetworkAdaptor(){
-
-    }
     private static URL getNetworkConfig(String networkName){
         return Config.class.getResource(String.format("/config/networks/%s.json", networkName));
     }
@@ -56,6 +53,10 @@ public abstract class NetworkAdaptor extends BecknObjectWithId {
     protected NetworkAdaptor(String networkName){
         setId(networkName);
         getInner().putAll(getConfig());
+        subscriberLookup = new TimeSensitiveCache(Duration.ofMinutes(Config.instance().getLongProperty(
+                String.format("in.succinct.onet.%s.lookup.cache.expiry.minutes",getId()),60L)));
+        Config.instance().getLogger(NetworkAdaptor.class.getName()).info(String.format(" Lookup Expiry %s : %s" , networkName , subscriberLookup.getTtl().toString()));
+
     }
     public  JSONObject getConfig(){
         try {
@@ -352,7 +353,7 @@ public abstract class NetworkAdaptor extends BecknObjectWithId {
         Config.instance().getLogger(getClass().getName()).info("subscribe" + "-" + ( response != null ? response.toString() : call.getError()));
     }
 
-    private transient TimeSensitiveCache subscriberLookup = new TimeSensitiveCache(Duration.ofHours(1));
+    private final transient TimeSensitiveCache subscriberLookup ;
 
     public String getKey(Subscriber subscriber){
         TreeMap<String,String> map = new TreeMap<>();
@@ -365,6 +366,7 @@ public abstract class NetworkAdaptor extends BecknObjectWithId {
         return map.toString();
     }
     public List<Subscriber> lookup(Subscriber subscriber,boolean onlyIfSubscribed) {
+
         return subscriberLookup.get(getKey(subscriber),()->{
             List<Subscriber> subscribers = new ArrayList<>();
             Subscriber tmp = new Subscriber();

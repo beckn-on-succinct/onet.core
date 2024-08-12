@@ -12,6 +12,10 @@ public class TimeSensitiveCache implements Serializable {
         this.ttl = ttl;
     }
 
+    public Duration getTtl() {
+        return ttl;
+    }
+
     public <T> T put(Object key, T value) {
         Entry entry = new Entry();
         entry.expiry = System.currentTimeMillis() + ttl.toMillis();
