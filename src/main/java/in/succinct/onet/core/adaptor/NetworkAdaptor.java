@@ -69,6 +69,13 @@ public abstract class NetworkAdaptor extends BecknObjectWithId {
 
 
 
+    public boolean isLookupRestrictedByCountry(){
+        return getBoolean("lookup_restricted_by_country",true);
+    }
+    public void setLookupRestrictedByCountry(boolean lookup_restricted_by_country){
+        set("lookup_restricted_by_country",lookup_restricted_by_country);
+    }
+    
 
     public boolean isSelfRegistrationSupported(){
         return getBoolean("self_registration_supported");
@@ -376,7 +383,7 @@ public abstract class NetworkAdaptor extends BecknObjectWithId {
                 tmp.set(getUniqueKeyId(), subscriber.getUniqueKeyId());
             }
 
-            if (ObjectUtil.isVoid(tmp.getCountry())){
+            if (ObjectUtil.isVoid(tmp.getCountry()) && isLookupRestrictedByCountry()){
                 tmp.setCountry(Config.instance().getProperty("in.succinct.onet.country.iso.3",
                         Config.instance().getProperty("in.succinct.bpp.shell.country.iso.3","IND")));
             }
