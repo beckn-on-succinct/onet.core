@@ -424,6 +424,46 @@ public abstract class NetworkAdaptor extends BecknObjectWithId {
         }
     }
 
+    public enum DomainCategory {
+        BUY_MOVABLE_GOODS("GOODS",false,true,"CONTINUOUS"),
+        RENT_MOVABLE_GOODS ( "GOODS", false,true,"SCHEDULE"),
+        HIRE_MOVABLE_SERVICE("SERVICES",false,true,"SCHEDULE"),
+        
+        BUY_IMMOVABLE_GOODS("GOODS", false,false,"CONTINUOUS"),
+        RENT_IMMOVABLE_GOODS("GOODS",false,false,"SCHEDULE"),
+        HIRE_IMMOVABLE_SERVICE("SERVICES",false,false,"SCHEDULE"),
+        
+        BUY_TRANSPORT_VEHICLE("GOODS",true,true,"CONTINUOUS"),
+        RENT_TRANSPORT_VEHICLE("GOODS", true,true,"SCHEDULE"),
+        HIRE_TRANSPORT_SERVICE("SERVICES", true,true,"SCHEDULE");
+        
+        final String resourceCategory;
+        final boolean usedForTransport;
+        final boolean transportable;
+        final String usage;
+        DomainCategory(String resourceCategory , boolean usedForTransport, boolean transportable, String usage){
+            this.resourceCategory = resourceCategory;
+            this.usedForTransport = usedForTransport;
+            this.transportable = transportable;
+            this.usage  = usage;
+        }
+        
+        public String getResourceCategory() {
+            return resourceCategory;
+        }
+        
+        public String getUsage() {
+            return usage;
+        }
+        
+        public boolean isTransportable() {
+            return transportable;
+        }
+        
+        public boolean isUsedForTransport() {
+            return usedForTransport;
+        }
+    }
     public static class Domain  extends BecknObjectWithId {
 
         public Domain() {
@@ -439,6 +479,14 @@ public abstract class NetworkAdaptor extends BecknObjectWithId {
         public void setName(String name){
             set("name",name);
         }
+        
+        public DomainCategory getDomainCategory(){
+            return getEnum(DomainCategory.class, "domain_category");
+        }
+        public void setDomainCategory(DomainCategory domain_category){
+            setEnum("domain_category",domain_category);
+        }
+        
 
         public String getVersion(){
             return get("version");
