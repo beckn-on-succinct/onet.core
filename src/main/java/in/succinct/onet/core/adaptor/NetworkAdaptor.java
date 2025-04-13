@@ -372,6 +372,10 @@ public abstract class NetworkAdaptor extends BecknObjectWithId {
         }
         return map.toString();
     }
+    
+    public void clearLookupCache(){
+        subscriberLookup.clear();
+    }
     public List<Subscriber> lookup(Subscriber subscriber,boolean onlyIfSubscribed) {
 
         return subscriberLookup.get(getKey(subscriber),()->{
