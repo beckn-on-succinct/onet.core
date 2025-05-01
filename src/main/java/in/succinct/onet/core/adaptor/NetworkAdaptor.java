@@ -25,6 +25,8 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -377,6 +379,9 @@ public abstract class NetworkAdaptor extends BecknObjectWithId {
         subscriberLookup.clear();
     }
     public List<Subscriber> lookup(Subscriber subscriber,boolean onlyIfSubscribed) {
+        return lookup(subscriber,onlyIfSubscribed,null);
+    }
+    public List<Subscriber> lookup(Subscriber subscriber,boolean onlyIfSubscribed, Subscriber caller) {
 
         return subscriberLookup.get(getKey(subscriber),()->{
             List<Subscriber> subscribers = new ArrayList<>();
@@ -392,9 +397,22 @@ public abstract class NetworkAdaptor extends BecknObjectWithId {
                         Config.instance().getProperty("in.succinct.bpp.shell.country.iso.3","IND")));
             }
 
-            JSONArray responses = new Call<JSONObject>().method(HttpMethod.POST).url(getRegistryUrl(), "lookup").input(tmp.getInner(false)).inputFormat(InputFormat.JSON)
+            Request request = new Request(tmp.getInner(false).toString());
+            
+            
+            Call<InputStream> call = new Call<InputStream>().method(HttpMethod.POST).url(getRegistryUrl(), "lookup").
+                    input(new ByteArrayInputStream(request.toString().getBytes(StandardCharsets.UTF_8))).inputFormat(InputFormat.INPUT_STREAM)
                     .header("content-type", MimeType.APPLICATION_JSON.toString())
-                    .header("accept", MimeType.APPLICATION_JSON.toString()).getResponseAsJson();
+                    .header("accept", MimeType.APPLICATION_JSON.toString());
+            
+            /** Need called Subscriber here. **/
+            if (caller != null) {
+                call.header("Authorization", request.generateAuthorizationHeader(caller.getSubscriberId(),
+                        Objects.requireNonNull(getKey(caller.getAlias(), CryptoKey.PURPOSE_SIGNING)).getAlias()));
+            }
+            
+            
+            JSONArray responses = call.getResponseAsJson();
             if (responses == null) {
                 return subscribers;
             }
