@@ -44,8 +44,11 @@ public class NetworkAdaptorFactory {
             }
         }
     }
-
-
+    
+    
+    public NetworkAdaptor getAdaptor(){
+        return getAdaptor(Config.instance().getProperty("in.succinct.onet.name","beckn_open"));
+    }
     public NetworkAdaptor getAdaptor(String networkName){
         NetworkAdaptor adaptor =  cache.get(networkName) ;
         if (adaptor == null) {
