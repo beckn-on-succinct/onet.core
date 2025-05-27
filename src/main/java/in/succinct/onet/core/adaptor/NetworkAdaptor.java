@@ -17,6 +17,7 @@ import com.venky.swf.routing.Config;
 import in.succinct.beckn.BecknObject;
 import in.succinct.beckn.BecknObjectWithId;
 import in.succinct.beckn.BecknObjectsWithId;
+import in.succinct.beckn.Descriptor;
 import in.succinct.beckn.Request;
 import in.succinct.beckn.Subscriber;
 
@@ -495,12 +496,6 @@ public abstract class NetworkAdaptor extends BecknObjectWithId {
             super(object);
         }
 
-        public String getName(){
-            return get("name");
-        }
-        public void setName(String name){
-            set("name",name);
-        }
         
         public DomainCategory getDomainCategory(){
             return getEnum(DomainCategory.class, "domain_category");
@@ -509,6 +504,12 @@ public abstract class NetworkAdaptor extends BecknObjectWithId {
             setEnum("domain_category",domain_category);
         }
         
+        public Descriptor getDescriptor(){
+            return get(Descriptor.class, "descriptor",true);
+        }
+        public void setDescriptor(Descriptor descriptor){
+            set("descriptor",descriptor);
+        }
 
         public String getVersion(){
             return get("version");
