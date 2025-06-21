@@ -30,6 +30,7 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
@@ -186,7 +187,17 @@ public abstract class NetworkAdaptor extends BecknObjectWithId {
         return get("unique_key_id","unique_key_id");
     }
     public String getBaseUrl(){
-        return get("base_url");
+        String baseUrl =  get("base_url");
+        if (baseUrl == null){
+            String registryUrl = getRegistryUrl();
+            try {
+                URI uri = new URI(registryUrl);
+                baseUrl = String.format("%s://%s",uri.getScheme(),uri.getHost());
+            }catch (Exception ex){
+                throw new RuntimeException(ex);
+            }
+        }
+        return baseUrl;
     }
 
     public void setBaseUrl(String base_url){
